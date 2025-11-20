@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // helper to get user role
+    function userRole(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.role;
+    }
+
+    // Anyone can read public collections
+    match /products/{productId} {
+      allow read: if true;
+      // only admin can create/update/delete products or the creator (admin-only by role)
+      allow create, update, delete: if request.auth != null && userRole(request.auth.uid) == "admin";
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if request.auth != null && userRole(request.auth.uid) in ["user","admin"];
+      // only admins may approve/hide/delete or the review owner can delete their own review
+      allow update, delete: if request.auth != null && (
+        userRole(request.auth.uid) == "admin" ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+
+    match /users/{userId} {
+      // public read only minimal profile (optional) -- restrict as you like
+      allow read: if request.auth != null;
+      // users can write their own profile (rename, phone), admins can write any user
+      allow create: if request.auth != null; // or restrict sign-up flow
+      allow update: if request.auth != null && (request.auth.uid == userId || userRole(request.auth.uid) == "admin");
+      // deleting a user document allowed only by admin or the user (but note: Auth deletion handled separately)
+      allow delete: if request.auth != null && (request.auth.uid == userId || userRole(request.auth.uid) == "admin");
+    }
+
+    match /images/{imageId} {
+      // images metadata readable by all; only admins can create (upload)
+      allow read: if true;
+      allow create, update, delete: if request.auth != null && userRole(request.auth.uid) == "admin";
+    }
+
+    match /leads/{leadId} {
+      allow read: if request.auth != null && userRole(request.auth.uid) == "admin";
+      allow create: if true; // contact form
+      allow delete: if request.auth != null && userRole(request.auth.uid) == "admin";
+    }
+
+    match /visitors/{doc=**} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null && userRole(request.auth.uid) == "admin";
+    }
+
+    // default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
