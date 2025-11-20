@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+lib/
+
+# Cache
+.cache/
+.vite/
+
+# Firebase
+.firebase/
+
+# Logs
+*.log
+
+# Package locks
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Environment
+.env
+.env.*
+
+# Generated files
+*.min.js
+*.min.css
